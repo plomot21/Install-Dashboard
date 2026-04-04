@@ -6,6 +6,7 @@
 <title>Installation Report — Live Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 :root{--primary:#1e3a5f;--primary-light:#2d5a8e;--success:#27ae60;--warning:#e67e22;--danger:#e74c3c;--bg:#f0f2f5;--card:#fff;--text:#2c3e50;--text-light:#7f8c8d;--border:#dce1e7;--sw:240px}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -14,7 +15,9 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
 /* ---- SETUP OVERLAY ---- */
 #setup-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center}
 #setup-overlay.open{display:flex}
-.setup-box{background:#fff;border-radius:16px;padding:32px;max-width:580px;width:92%;box-shadow:0 20px 60px rgba(0,0,0,.25);max-height:92vh;overflow-y:auto}
+.setup-box{background:#fff;border-radius:16px;padding:32px;max-width:580px;width:92%;box-shadow:0 20px 60px rgba(0,0,0,.25);max-height:92vh;overflow-y:auto;position:relative}
+.setup-close{position:absolute;top:14px;right:18px;background:none;border:none;font-size:22px;cursor:pointer;color:#7f8c8d;line-height:1;padding:4px 8px;border-radius:6px;z-index:1}
+.setup-close:hover{background:#f0f2f5;color:#2c3e50}
 .setup-box h2{font-size:21px;color:var(--primary);margin-bottom:6px}
 .setup-box>p{font-size:13px;color:var(--text-light);margin-bottom:18px;line-height:1.6}
 /* Source tabs */
@@ -197,9 +200,28 @@ tr:hover td{background:#f9fbfc}
 .hm-legend-step{width:18px;height:12px;border-radius:2px}
 .hm-zero-note{font-size:11px;color:var(--text-light);margin-top:6px}
 
+/* Warranty detail panel */
+.wd-box{background:#fff;border-radius:14px;padding:28px;max-width:720px;width:94%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.wd-box h3{font-size:17px;font-weight:700;color:var(--primary);margin-bottom:6px}
+.wd-box .wd-sub{font-size:12px;color:var(--text-light);margin-bottom:16px}
+.wd-card{background:#f6f8fa;border-radius:10px;padding:14px 18px;margin-bottom:12px;border-left:4px solid var(--warning)}
+.wd-card.closed{border-left-color:var(--success)}
+.wd-card .wd-row{display:flex;gap:12px;flex-wrap:wrap;font-size:13px;margin-bottom:6px}
+.wd-card .wd-row:last-child{margin-bottom:0}
+.wd-card .wd-lbl{font-weight:600;color:var(--text);min-width:90px}
+.wd-card .wd-val{color:var(--text-light)}
+.warranty-click{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}
+.warranty-click:hover{text-decoration-style:solid;color:var(--primary)}
+/* Sync write-back indicator */
+.wb-status{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:3px 10px;border-radius:12px;font-weight:600}
+.wb-status.ok{background:#e8f8f0;color:#27ae60}
+.wb-status.syncing{background:#fef6e8;color:#e67e22}
+.wb-status.err{background:#fdf0ee;color:#e74c3c}
+.wb-status.off{background:#f0f2f5;color:#7f8c8d}
+
 /* Add Record form */
-#ar-panel{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:8000;align-items:center;justify-content:center}
-#ar-panel.open{display:flex}
+#ar-panel,#aw-panel,#wd-panel,#we-panel,#id-panel,#ie-panel{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:8000;align-items:center;justify-content:center}
+#ar-panel.open,#aw-panel.open,#wd-panel.open,#we-panel.open,#id-panel.open,#ie-panel.open{display:flex}
 .ar-box{background:#fff;border-radius:14px;padding:28px;max-width:640px;width:92%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
 .ar-box h3{font-size:17px;font-weight:700;color:var(--primary);margin-bottom:20px}
 .ar-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -217,6 +239,7 @@ tr:hover td{background:#f9fbfc}
 <!-- ===== SETUP OVERLAY ===== -->
 <div id="setup-overlay">
   <div class="setup-box">
+    <button class="setup-close" onclick="document.getElementById('setup-overlay').classList.remove('open')" title="Close">✕</button>
     <h2>📊 Connect Your Live Data</h2>
     <p>Choose how you want to connect your installation data. All options work without SharePoint admin access.</p>
 
@@ -263,10 +286,11 @@ tr:hover td{background:#f9fbfc}
     <!-- ===== GOOGLE SHEETS TAB ===== -->
     <div class="src-panel" id="src-gs">
       <div class="setup-steps">
-        <h4>Connect your Google Sheet (2 steps)</h4>
+        <h4>Connect your Google Sheet</h4>
         <ol>
           <li>Open your Google Sheet → click <b>Share</b> (top-right) → change access to <b>"Anyone with the link"</b> → set role to <b>Viewer</b></li>
           <li>Click <b>Copy link</b> and paste it below</li>
+          <li><b>(Optional — for auto-save)</b> Enter your Google API Client ID to enable write-back</li>
         </ol>
       </div>
       <div class="od-alert info" style="margin-bottom:14px;font-size:12px">
@@ -281,6 +305,20 @@ tr:hover td{background:#f9fbfc}
         <div class="setup-note">Paste the link from <b>Share → Copy link</b> — any Google Sheets URL format is accepted</div>
       </div>
       <div id="gs-status"></div>
+      <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border)">
+        <div class="od-alert info" style="margin-bottom:10px;font-size:12px;line-height:1.7">
+          🔄 <b>Auto-Save to Google Sheets</b> — Enable write-back so edits in the dashboard automatically sync back to your Google Sheet. Requires a Google Cloud API Client ID. See the <b>Google Sheets API Setup Guide</b> included in your folder for step-by-step instructions.
+        </div>
+        <div class="form-row" style="margin-bottom:10px">
+          <label style="font-size:12px;font-weight:600;margin-bottom:4px;display:block">Google API Client ID</label>
+          <div class="url-input-wrap">
+            <input type="text" id="gs-client-id" placeholder="123456789-xxxxx.apps.googleusercontent.com">
+            <button class="btn" id="gs-auth-btn" onclick="gsSignIn()" style="background:#4285f4">🔐 Sign In</button>
+          </div>
+          <div class="setup-note">From <b>Google Cloud Console → APIs & Services → Credentials</b></div>
+        </div>
+        <div id="gs-auth-status"></div>
+      </div>
     </div>
 
     <!-- ===== LOCAL FILE TAB ===== -->
@@ -342,6 +380,137 @@ tr:hover td{background:#f9fbfc}
   </div>
 </div>
 
+<!-- ===== ADD WARRANTY ISSUE PANEL ===== -->
+<div id="aw-panel">
+  <div class="ar-box">
+    <h3>🛡️ Add Warranty Issue</h3>
+    <div style="background:#fef6e8;border-radius:8px;padding:10px 14px;font-size:12px;color:#856404;margin-bottom:16px;line-height:1.5">
+      Link a warranty issue to an existing installation. Select the installation below, then fill in the warranty details.
+    </div>
+    <div class="ar-grid">
+      <div class="full">
+        <label>Select Installation *</label>
+        <select id="aw-install" onchange="awInstallChanged()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:7px;font-size:13px">
+          <option value="">Choose an installation…</option>
+        </select>
+      </div>
+      <div id="aw-install-info" style="grid-column:1/-1;display:none;background:#f6f8fa;border-radius:8px;padding:10px 14px;font-size:12px;color:var(--text);line-height:1.6"></div>
+      <div><label>Return Date *</label><input type="date" id="aw-date"></div>
+      <div><label>Problem Code</label>
+        <select id="aw-pc"><option value="">Select…</option></select>
+      </div>
+      <div class="full"><label>Warranty Issue Description *</label><textarea id="aw-issue" placeholder="Describe the warranty issue…"></textarea></div>
+      <div class="full"><label>Resolution / Action Taken</label><textarea id="aw-resolution" placeholder="What was done to resolve…" style="height:56px"></textarea></div>
+      <div><label>Tech Assigned</label><input type="text" id="aw-tech" placeholder="Tech name"></div>
+      <div><label>Status</label>
+        <select id="aw-status"><option value="Open">Open</option><option value="In-Process">In-Process</option><option value="Closed">Closed</option></select>
+      </div>
+      <div><label>Return Visit Required?</label>
+        <select id="aw-rv"><option value="">No</option><option value="Yes">Yes</option></select>
+      </div>
+      <div><label>Estimated Cost</label><input type="text" id="aw-cost" placeholder="e.g. $500"></div>
+      <div class="savehint">💡 Warranty records are saved as separate rows linked to the original installation. Use <b>⬇ Export CSV</b> to download.</div>
+    </div>
+    <div class="ar-actions">
+      <button class="btn btns" onclick="closeAW()">Cancel</button>
+      <button class="btn" style="background:#e67e22" onclick="saveWarranty()">🛡️ Save Warranty Issue</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== INSTALLATION DETAIL PANEL ===== -->
+<div id="id-panel">
+  <div class="wd-box" style="max-width:780px">
+    <h3 id="id-title">Installation Details</h3>
+    <div class="wd-sub" id="id-sub"></div>
+    <div id="id-body"></div>
+    <div id="id-warranty-section" style="margin-top:16px;border-top:2px solid var(--warning);padding-top:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span style="font-size:14px;font-weight:700;color:var(--warning)">🛡️ Warranty Claims</span>
+        <button class="btn btno" style="padding:5px 12px;font-size:11px" id="id-add-warranty-btn" onclick="addWarrantyFromCard()">+ Add Warranty Claim</button>
+      </div>
+      <div id="id-warranty-body"></div>
+    </div>
+    <div style="text-align:right;margin-top:16px">
+      <button class="btn btns" onclick="closeID()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== EDIT INSTALLATION RECORD PANEL ===== -->
+<div id="ie-panel">
+  <div class="ar-box">
+    <h3 id="ie-title">Edit Installation Record</h3>
+    <div class="wd-sub" id="ie-sub" style="margin-bottom:14px"></div>
+    <div class="ar-grid">
+      <div><label>Model</label><input type="text" id="ie-model" placeholder="Model name"></div>
+      <div><label>Size/Options</label><input type="text" id="ie-size" placeholder="Size/Options"></div>
+      <div><label>Tech(s)</label><input type="text" id="ie-techs" placeholder="Tech name(s)"></div>
+      <div><label>Problem Code</label>
+        <select id="ie-pc"><option value="">Select…</option></select>
+      </div>
+      <div class="full"><label>Issue</label><textarea id="ie-issue" placeholder="Describe the issue…"></textarea></div>
+      <div class="full"><label>Root Cause</label><textarea id="ie-root" placeholder="Root cause…" style="height:56px"></textarea></div>
+      <div><label>IA Status</label>
+        <select id="ie-sia"><option value="">Select…</option><option value="open">Open</option><option value="closed">Closed</option><option value="in-process">In-Process</option></select>
+      </div>
+      <div><label>Return Visit</label>
+        <select id="ie-rv"><option value="">No</option><option value="Yes">Yes</option><option value="True">True</option></select>
+      </div>
+      <div class="full"><label>Immediate Action</label><textarea id="ie-ia" placeholder="Immediate action taken…" style="height:56px"></textarea></div>
+      <div><label>PA Status</label>
+        <select id="ie-spa"><option value="">Select…</option><option value="open">Open</option><option value="closed">Closed</option><option value="in-process">In-Process</option></select>
+      </div>
+      <div><label>PA Owner</label><input type="text" id="ie-pao" placeholder="Owner"></div>
+      <div class="full"><label>Preventative Action</label><textarea id="ie-pa" placeholder="Preventative action…" style="height:56px"></textarea></div>
+    </div>
+    <div class="ar-actions">
+      <button class="btn btns" onclick="closeIE()">Cancel</button>
+      <button class="btn" style="background:#2d5a8e" onclick="saveEditInstall()">💾 Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== WARRANTY DETAIL PANEL ===== -->
+<div id="wd-panel">
+  <div class="wd-box">
+    <h3 id="wd-title">Warranty Claims</h3>
+    <div class="wd-sub" id="wd-sub"></div>
+    <div id="wd-body"></div>
+    <div style="text-align:right;margin-top:16px">
+      <button class="btn btns" onclick="closeWD()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== EDIT WARRANTY CLAIM PANEL ===== -->
+<div id="we-panel">
+  <div class="ar-box">
+    <h3 id="we-title">Edit Warranty Claim</h3>
+    <div class="wd-sub" id="we-sub"></div>
+    <div class="ar-grid" style="margin-top:14px">
+      <div><label>Return Date *</label><input type="date" id="we-date"></div>
+      <div><label>Problem Code</label>
+        <select id="we-pc"><option value="">Select…</option></select>
+      </div>
+      <div class="full"><label>Warranty Issue Description *</label><textarea id="we-issue" placeholder="Describe the warranty issue…"></textarea></div>
+      <div class="full"><label>Resolution / Action Taken</label><textarea id="we-resolution" placeholder="What was done to resolve…" style="height:56px"></textarea></div>
+      <div><label>Tech Assigned</label><input type="text" id="we-tech" placeholder="Tech name"></div>
+      <div><label>Status</label>
+        <select id="we-status"><option value="Open">Open</option><option value="In-Process">In-Process</option><option value="Closed">Closed</option></select>
+      </div>
+      <div><label>Return Visit Required?</label>
+        <select id="we-rv"><option value="">No</option><option value="Yes">Yes</option></select>
+      </div>
+      <div><label>Estimated Cost</label><input type="text" id="we-cost" placeholder="e.g. $500"></div>
+    </div>
+    <div class="ar-actions">
+      <button class="btn btns" onclick="closeWE()">Cancel</button>
+      <button class="btn" style="background:#2d5a8e" onclick="saveEditClaim()">💾 Save Changes</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== SIDEBAR ===== -->
 <div id="sidebar">
   <div class="slogo">
@@ -355,13 +524,19 @@ tr:hover td{background:#f9fbfc}
     <span class="nic">🔴</span>Open Issues<span class="obadge" id="open-badge">0</span>
   </div>
   <div class="ni" onclick="nav('installs')" data-page="installs"><span class="nic">🏭</span>All Installations</div>
-  <div class="ni" onclick="nav('techs')" data-page="techs"><span class="nic">👷</span>Tech Performance</div>
+  <div class="ni" onclick="nav('warranty')" data-page="warranty">
+    <span class="nic">🛡️</span>Warranty Issues<span class="obadge" id="warranty-badge" style="background:#e67e2220;color:#e67e22">0</span>
+  </div>
   <div class="ni" onclick="nav('analytics')" data-page="analytics"><span class="nic">📈</span>Analytics</div>
 
   <div class="nsec">Filters</div>
   <div class="sbf">
-    <div class="fg"><label>Year</label>
-      <select id="f-year" onchange="applyFilters()"><option value="">All Years</option></select>
+    <div class="fg"><label>Year Range</label>
+      <div style="display:flex;gap:4px;align-items:center">
+        <select id="f-year-from" onchange="applyFilters()" style="flex:1"><option value="">From</option></select>
+        <span style="color:#8ab0d0;font-size:11px">—</span>
+        <select id="f-year-to" onchange="applyFilters()" style="flex:1"><option value="">To</option></select>
+      </div>
     </div>
     <div class="fg"><label>Month</label>
       <select id="f-month" onchange="applyFilters()"><option value="">All Months</option>
@@ -381,9 +556,6 @@ tr:hover td{background:#f9fbfc}
         <option value="">All</option><option value="open">Open</option><option value="closed">Closed</option><option value="in-process">In-Process</option>
       </select>
     </div>
-    <div class="fg"><label>Tech</label>
-      <input type="text" id="f-tech" placeholder="Search tech name…" oninput="applyFilters()">
-    </div>
     <button class="fbtn" onclick="clearFilters()">✕ Clear Filters</button>
   </div>
 
@@ -401,9 +573,11 @@ tr:hover td{background:#f9fbfc}
       <div class="tsub" id="page-sub">All installation records</div>
     </div>
     <div class="tright">
+      <div id="wb-indicator" class="wb-status off" style="display:none" title="Google Sheets write-back status">● Off</div>
       <div id="sync-status" style="font-size:12px;color:var(--text-light)"></div>
       <button class="btn btns" id="refresh-btn" onclick="refreshData()" title="Refresh from data source">🔄 Refresh</button>
       <button class="btn btng" onclick="openAR()">+ Add Record</button>
+      <button class="btn btno" onclick="openAW()">🛡️ Warranty Issue</button>
       <button class="btn btns" onclick="exportCSV()">⬇ Export CSV</button>
     </div>
   </div>
@@ -511,7 +685,7 @@ tr:hover td{background:#f9fbfc}
         <input type="text" id="install-search" placeholder="🔍  Search installations by customer, tech, model…" oninput="renderInstallsTable()">
         <span class="result-count" id="install-count"></span>
       </div>
-      <div class="kgrid" style="grid-template-columns:repeat(3,1fr);margin-bottom:18px">
+      <div class="kgrid" style="grid-template-columns:repeat(4,1fr);margin-bottom:18px">
         <div class="kcard">
           <div class="kico blue">🏭</div>
           <div><div class="kval" id="ki-total">—</div><div class="klbl">Total Installations</div></div>
@@ -523,6 +697,10 @@ tr:hover td{background:#f9fbfc}
         <div class="kcard">
           <div class="kico red">⚠️</div>
           <div><div class="kval" id="ki-issues">—</div><div class="klbl">With Issues</div></div>
+        </div>
+        <div class="kcard">
+          <div class="kico orange">🛡️</div>
+          <div><div class="kval" id="ki-warranty">—</div><div class="klbl">Warranty Claims</div><div class="ktr neutral" id="ki-warranty-sub"></div></div>
         </div>
       </div>
       <div class="cc">
@@ -537,6 +715,7 @@ tr:hover td{background:#f9fbfc}
                 <th>Tech(s)</th>
                 <th onclick="sortInstalls('issueRecords')" style="cursor:pointer">Issues ↕</th>
                 <th onclick="sortInstalls('isClean')" style="cursor:pointer">Status ↕</th>
+                <th onclick="sortInstalls('warrantyCount')" style="cursor:pointer">Warranty ↕</th>
               </tr>
             </thead>
             <tbody id="installs-tbody"></tbody>
@@ -572,54 +751,51 @@ tr:hover td{background:#f9fbfc}
       </div>
     </div>
 
-    <!-- ===== TECH PERFORMANCE ===== -->
-    <div class="page" id="page-techs">
-      <div class="kgrid" style="grid-template-columns:repeat(3,1fr);margin-bottom:18px">
+    <!-- ===== WARRANTY ISSUES ===== -->
+    <div class="page" id="page-warranty">
+      <div class="search-bar">
+        <input type="text" id="warranty-search" placeholder="🔍  Search warranty claims by customer, tech, issue…" oninput="renderWarrantyPage()">
+        <span class="result-count" id="warranty-count"></span>
+      </div>
+      <div class="kgrid" style="grid-template-columns:repeat(4,1fr);margin-bottom:18px">
         <div class="kcard">
-          <div class="kico blue">👷</div>
-          <div><div class="kval" id="kt-total">—</div><div class="klbl">Active Techs</div></div>
+          <div class="kico orange">🛡️</div>
+          <div><div class="kval" id="kw-total">—</div><div class="klbl">Total Claims</div></div>
         </div>
         <div class="kcard">
-          <div class="kico green">🏆</div>
-          <div><div class="kval" id="kt-best">—</div><div class="klbl">Highest Success Rate</div><div class="ktr neutral" id="kt-best-name" style="font-size:11px"></div></div>
+          <div class="kico red">🔴</div>
+          <div><div class="kval" id="kw-open">—</div><div class="klbl">Open Claims</div></div>
         </div>
         <div class="kcard">
-          <div class="kico orange">📊</div>
-          <div><div class="kval" id="kt-avg">—</div><div class="klbl">Avg Success Rate</div></div>
+          <div class="kico green">✅</div>
+          <div><div class="kval" id="kw-closed">—</div><div class="klbl">Closed Claims</div></div>
+        </div>
+        <div class="kcard">
+          <div class="kico blue">💰</div>
+          <div><div class="kval" id="kw-cost">—</div><div class="klbl">Total Cost</div></div>
         </div>
       </div>
-      <div class="cgrid2" style="margin-bottom:18px">
-        <div class="cc">
-          <div class="cc-hdr"><h3>Tech Success Rate Ranking</h3><span style="font-size:12px;color:var(--text-light)">% of installations with only K-No Issues</span></div>
-          <canvas id="chart-tech-rank" height="200"></canvas>
-        </div>
-        <div class="cc">
-          <div class="cc-hdr"><h3>Installations per Tech</h3></div>
-          <canvas id="chart-tech-volume" height="200"></canvas>
-        </div>
-      </div>
-      <div class="cc" style="margin-bottom:18px">
-        <div class="cc-hdr"><h3>All Techs — Detailed Breakdown</h3><span class="result-count" id="tech-count"></span></div>
+      <div class="cc">
         <div class="tbl-wrap">
           <table>
             <thead>
               <tr>
-                <th onclick="sortTechs('name')" style="cursor:pointer">Tech ↕</th>
-                <th onclick="sortTechs('total')" style="cursor:pointer">Total Installs ↕</th>
-                <th onclick="sortTechs('clean')" style="cursor:pointer">K-No Issues ↕</th>
-                <th onclick="sortTechs('withIssues')" style="cursor:pointer">With Issues ↕</th>
-                <th onclick="sortTechs('successRate')" style="cursor:pointer">Success Rate ↕</th>
-                <th>Performance</th>
-                <th onclick="sortTechs('topProblemCode')" style="cursor:pointer">Top Problem Code ↕</th>
+                <th onclick="sortWarranty('warrantyDate')" style="cursor:pointer">Return Date ↕</th>
+                <th onclick="sortWarranty('customer')" style="cursor:pointer">Customer ↕</th>
+                <th>Install Date</th>
+                <th>Model / Size</th>
+                <th onclick="sortWarranty('warrantyProblemCode')" style="cursor:pointer">Problem Code ↕</th>
+                <th>Warranty Issue</th>
+                <th onclick="sortWarranty('warrantyTech')" style="cursor:pointer">Tech ↕</th>
+                <th onclick="sortWarranty('warrantyStatus')" style="cursor:pointer">Status ↕</th>
+                <th>Return Visit</th>
+                <th onclick="sortWarranty('warrantyCost')" style="cursor:pointer">Cost ↕</th>
               </tr>
             </thead>
-            <tbody id="techs-tbody"></tbody>
+            <tbody id="warranty-tbody"></tbody>
           </table>
         </div>
-      </div>
-      <div class="cc">
-        <div class="cc-hdr"><h3>Problem Code Breakdown by Tech</h3><span style="font-size:12px;color:var(--text-light)">Click a row above to highlight</span></div>
-        <div id="tech-pc-detail" style="padding:12px 0;color:var(--text-light);font-size:13px">Select a technician from the table to view their problem code breakdown.</div>
+        <div class="pagination" id="warranty-pagination"></div>
       </div>
     </div>
 
@@ -679,14 +855,62 @@ tr:hover td{background:#f9fbfc}
           <canvas id="a-yoy" height="180"></canvas>
         </div>
       </div>
-      <div class="cgrid2">
-        <div class="cc">
-          <div class="cc-hdr"><h3>Problem Code Trend</h3></div>
-          <canvas id="a-trend" height="140"></canvas>
+      <div class="cc" style="margin-bottom:18px">
+        <div class="cc-hdr"><h3>Problem Code Trend</h3></div>
+        <canvas id="a-trend" height="140"></canvas>
+      </div>
+      <div class="cc" style="margin-bottom:18px">
+        <div class="cc-hdr"><h3>Issues by Month — Problem Code Breakdown</h3><span style="font-size:12px;color:var(--text-light)">Stacked by top problem codes</span></div>
+        <canvas id="a-issues-by-month" height="180"></canvas>
+      </div>
+
+      <!-- Warranty Analytics -->
+      <div style="margin-top:28px;margin-bottom:14px;font-size:16px;font-weight:700;color:var(--primary);display:flex;align-items:center;gap:8px">
+        🛡️ Warranty &amp; Return Visit Analytics
+      </div>
+      <div class="kgrid" style="grid-template-columns:repeat(4,1fr);margin-bottom:18px">
+        <div class="kcard">
+          <div class="kico orange">🔄</div>
+          <div><div class="kval" id="aw-rv-total">—</div><div class="klbl">Return Visits Required</div></div>
         </div>
-        <div class="cc">
-          <div class="cc-hdr"><h3>Closure Rate by Year</h3></div>
-          <canvas id="a-closure" height="140"></canvas>
+        <div class="kcard">
+          <div class="kico blue">💰</div>
+          <div><div class="kval" id="aw-cost-total">—</div><div class="klbl">Total Warranty Cost</div></div>
+        </div>
+        <div class="kcard">
+          <div class="kico green">📊</div>
+          <div><div class="kval" id="aw-cost-avg">—</div><div class="klbl">Avg Cost per Claim</div></div>
+        </div>
+        <div class="kcard">
+          <div class="kico red">⚠️</div>
+          <div><div class="kval" id="aw-multi">—</div><div class="klbl">Multi-Claim Installations</div><div class="ktr neutral" id="aw-multi-sub"></div></div>
+        </div>
+      </div>
+      <div class="cc" style="margin-bottom:18px">
+        <div class="cc-hdr"><h3>Warranty Claims &amp; Cost by Month</h3><span style="font-size:12px;color:var(--text-light)">Each color = individual claim cost · Click a segment to view details</span></div>
+        <canvas id="a-warranty-monthly" height="180"></canvas>
+      </div>
+      <div class="cc" style="margin-bottom:18px">
+        <div class="cc-hdr">
+          <h3>⚠️ Multi-Claim Installations</h3>
+          <span style="font-size:12px;color:var(--text-light)">Installations with 2+ warranty claims — may indicate recurring problems</span>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Customer</th>
+                <th>Install Date</th>
+                <th>Model / Size</th>
+                <th>Tech(s)</th>
+                <th>Claims</th>
+                <th>Return Visits</th>
+                <th>Total Cost</th>
+                <th>Statuses</th>
+              </tr>
+            </thead>
+            <tbody id="a-multi-tbody"></tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -714,6 +938,8 @@ let analyticsPeriod = 'all';
 let refreshTimer = null;
 let installPage = 1;
 let installSortCol = 'year', installSortDir = -1;
+let warrantyPage = 1;
+let warrantySortCol = 'warrantyDate', warrantySortDir = -1;
 
 /* Returns true if a record represents a real issue (problem code is NOT "K-No Issues") */
 function hasIssue(r) {
@@ -759,7 +985,16 @@ function parseCSV(text) {
     statusPA: ['statuspa','pastatusstatuspa'],
     preventativeAction: ['preventativeaction','preventiveaction'],
     paOwner: ['paowner','owner'],
-    paTimeline: ['patimeline','timeline']
+    paTimeline: ['patimeline','timeline'],
+    recordType: ['recordtype','type'],
+    warrantyDate: ['warrantydate','returndate'],
+    warrantyIssue: ['warrantyissue'],
+    warrantyProblemCode: ['warrantyproblemcode'],
+    warrantyStatus: ['warrantystatus'],
+    warrantyResolution: ['warrantyresolution'],
+    warrantyTech: ['warrantytech'],
+    warrantyReturnVisit: ['warrantyreturnvisit'],
+    warrantyCost: ['warrantycost']
   };
 
   function findCol(key) {
@@ -803,7 +1038,16 @@ function parseCSV(text) {
       statusPA: get('statusPA').toLowerCase(),
       preventativeAction: get('preventativeAction'),
       paOwner: get('paOwner'),
-      paTimeline: get('paTimeline')
+      paTimeline: get('paTimeline'),
+      recordType: get('recordType') || 'Installation',
+      warrantyDate: get('warrantyDate'),
+      warrantyIssue: get('warrantyIssue'),
+      warrantyProblemCode: get('warrantyProblemCode'),
+      warrantyStatus: get('warrantyStatus').toLowerCase(),
+      warrantyResolution: get('warrantyResolution'),
+      warrantyTech: get('warrantyTech'),
+      warrantyReturnVisit: get('warrantyReturnVisit'),
+      warrantyCost: get('warrantyCost')
     });
   }
   return records;
@@ -851,7 +1095,12 @@ function parseDelimited(rows, delim) {
     statusIA:['statusia'],immediateAction:['immediateaction','imeadiateaction'],
     returnVisit:['returnvisit'],statusPA:['statuspa'],
     preventativeAction:['preventativeaction','preventiveaction'],
-    paOwner:['paowner','owner'],paTimeline:['patimeline','timeline']
+    paOwner:['paowner','owner'],paTimeline:['patimeline','timeline'],
+    recordType:['recordtype','type'],warrantyDate:['warrantydate','returndate'],
+    warrantyIssue:['warrantyissue'],warrantyProblemCode:['warrantyproblemcode'],
+    warrantyStatus:['warrantystatus'],warrantyResolution:['warrantyresolution'],
+    warrantyTech:['warrantytech'],warrantyReturnVisit:['warrantyreturnvisit'],
+    warrantyCost:['warrantycost']
   };
   function findCol(key) {
     const aliases = fieldMap[key] || [key.toLowerCase()];
@@ -874,7 +1123,12 @@ function parseDelimited(rows, delim) {
       rootCause:get('rootCause'),problemCode:get('problemCode'),
       statusIA:get('statusIA').toLowerCase(),immediateAction:get('immediateAction'),
       returnVisit:get('returnVisit'),statusPA:get('statusPA').toLowerCase(),
-      preventativeAction:get('preventativeAction'),paOwner:get('paOwner'),paTimeline:get('paTimeline')
+      preventativeAction:get('preventativeAction'),paOwner:get('paOwner'),paTimeline:get('paTimeline'),
+      recordType:get('recordType')||'Installation',warrantyDate:get('warrantyDate'),
+      warrantyIssue:get('warrantyIssue'),warrantyProblemCode:get('warrantyProblemCode'),
+      warrantyStatus:get('warrantyStatus').toLowerCase(),warrantyResolution:get('warrantyResolution'),
+      warrantyTech:get('warrantyTech'),warrantyReturnVisit:get('warrantyReturnVisit'),
+      warrantyCost:get('warrantyCost')
     });
   }
   return records;
@@ -1231,7 +1485,10 @@ function loadDemoData() {
           statusIA: statuses[Math.floor(Math.random()*statuses.length)].toLowerCase(),
           immediateAction: 'Part replaced', returnVisit: Math.random()>.7?'Yes':'',
           statusPA: Math.random()>.5?'closed':'',
-          preventativeAction:'', paOwner:'', paTimeline:''
+          preventativeAction:'', paOwner:'', paTimeline:'',
+          recordType:'Installation', warrantyDate:'', warrantyIssue:'',
+          warrantyProblemCode:'', warrantyStatus:'', warrantyResolution:'',
+          warrantyTech:'', warrantyReturnVisit:'', warrantyCost:''
         });
       }
     }
@@ -1249,20 +1506,20 @@ function loadDemoData() {
 const MONTHS_ORDER = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 function applyFilters() {
-  const yr = document.getElementById('f-year').value;
+  const yrFrom = document.getElementById('f-year-from').value;
+  const yrTo = document.getElementById('f-year-to').value;
   const mo = document.getElementById('f-month').value;
   const cu = document.getElementById('f-cust').value;
   const pc = document.getElementById('f-pc').value;
   const st = document.getElementById('f-status').value;
-  const tc = document.getElementById('f-tech').value.toLowerCase();
 
   FD = D.filter(r => {
-    if (yr && String(r.year) !== yr) return false;
+    if (yrFrom && r.year < parseInt(yrFrom)) return false;
+    if (yrTo && r.year > parseInt(yrTo)) return false;
     if (mo && r.month !== mo) return false;
     if (cu && r.customer !== cu) return false;
     if (pc && r.problemCode !== pc) return false;
     if (st && !r.statusIA.includes(st.toLowerCase())) return false;
-    if (tc && !r.techs.toLowerCase().includes(tc)) return false;
     return true;
   });
 
@@ -1276,13 +1533,14 @@ function applyFilters() {
 }
 
 function clearFilters() {
-  ['f-year','f-month','f-cust','f-pc','f-status'].forEach(id => {
+  ['f-year-from','f-year-to','f-month','f-cust','f-pc','f-status'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = '';
   });
-  document.getElementById('f-tech').value = '';
   document.getElementById('issue-search').value = '';
   const instSearch = document.getElementById('install-search');
   if (instSearch) instSearch.value = '';
+  const wSearch = document.getElementById('warranty-search');
+  if (wSearch) wSearch.value = '';
   applyFilters();
 }
 
@@ -1308,7 +1566,8 @@ function populateDropdowns() {
     vals.forEach(v => { const o = new Option(v,v); sel.add(o); });
     if (vals.includes(cur)) sel.value = cur;
   }
-  fill('f-year', years);
+  fill('f-year-from', years);
+  fill('f-year-to', years);
   fill('f-cust', custs);
   fill('f-pc', pcs);
 
@@ -1348,6 +1607,11 @@ function updateOpenBadge() {
   const open = FD.filter(r => hasIssue(r) && r.statusIA === 'open').length;
   document.getElementById('open-badge').textContent = open;
   document.getElementById('oi-ia-cnt').textContent = open;
+  // Update warranty badge
+  const wRecords = getWarrantyRecords(FD);
+  const wOpen = wRecords.filter(w => (w.warrantyStatus||'').toLowerCase() === 'open' || (w.warrantyStatus||'').toLowerCase() === 'in-process').length;
+  const wBadge = document.getElementById('warranty-badge');
+  if (wBadge) { wBadge.textContent = wOpen; wBadge.style.display = wOpen > 0 ? '' : 'none'; }
 }
 
 /* ============================================================
@@ -1611,13 +1875,38 @@ function renderOpenIssues() {
 function getInstallations(data) {
   const map = {};
   data.forEach(r => {
+    // Skip warranty-only rows from being counted as separate installations
+    if (r.recordType === 'Warranty') {
+      // Attach warranty info to matching installation
+      const key = `${r.customer}|${r.year}|${r.month}`;
+      if (!map[key]) {
+        map[key] = {
+          customer: r.customer, year: r.year, month: r.month,
+          models: new Set(), techs: new Set(),
+          totalRecords: 0, issueRecords: 0,
+          hasOpenIA: false, issues: [], warranty: []
+        };
+      }
+      map[key].warranty.push({
+        date: r.warrantyDate,
+        issue: r.warrantyIssue,
+        problemCode: r.warrantyProblemCode,
+        status: r.warrantyStatus,
+        resolution: r.warrantyResolution,
+        tech: r.warrantyTech,
+        returnVisit: r.warrantyReturnVisit,
+        cost: r.warrantyCost
+      });
+      return;
+    }
+
     const key = `${r.customer}|${r.year}|${r.month}`;
     if (!map[key]) {
       map[key] = {
         customer: r.customer, year: r.year, month: r.month,
         models: new Set(), techs: new Set(),
         totalRecords: 0, issueRecords: 0,
-        hasOpenIA: false, issues: []
+        hasOpenIA: false, issues: [], warranty: []
       };
     }
     const inst = map[key];
@@ -1630,12 +1919,23 @@ function getInstallations(data) {
       if (r.statusIA === 'open') inst.hasOpenIA = true;
     }
   });
-  return Object.values(map).map(inst => ({
-    ...inst,
-    models: [...inst.models].join(', '),
-    techs: [...inst.techs].join(', '),
-    isClean: inst.issueRecords === 0
-  }));
+  return Object.values(map).map(inst => {
+    const warrantyOpen = inst.warranty.filter(w => w.status === 'open' || w.status === 'in-process').length;
+    // Warranty expiry: 1 year from install month
+    const monthIdx = MONTHS_ORDER.indexOf(inst.month);
+    const expiryDate = monthIdx >= 0 ? new Date(inst.year + 1, monthIdx + 1, 1) : null;
+    const warrantyActive = expiryDate ? new Date() < expiryDate : false;
+    return {
+      ...inst,
+      models: [...inst.models].join(', '),
+      techs: [...inst.techs].join(', '),
+      isClean: inst.issueRecords === 0,
+      warrantyCount: inst.warranty.length,
+      warrantyOpen,
+      warrantyActive,
+      warrantyCost: inst.warranty.reduce((s, w) => s + (parseFloat((w.cost||'').replace(/[^0-9.]/g,'')) || 0), 0)
+    };
+  });
 }
 
 function sortInstalls(col) {
@@ -1643,6 +1943,211 @@ function sortInstalls(col) {
   else { installSortCol = col; installSortDir = -1; }
   installPage = 1;
   renderInstallsTable();
+}
+
+/* ============================================================
+   INSTALLATION DETAIL & EDIT
+   ============================================================ */
+function showInstallDetail(key) {
+  const installs = getInstallations(FD);
+  const inst = installs.find(i => (i.customer + '|' + i.year + '|' + i.month) === key);
+  if (!inst) return;
+
+  // Find raw records for this installation
+  const parts = key.split('|');
+  const rawRecs = D.filter(r => r.recordType !== 'Warranty' && r.customer === parts[0] && String(r.year) === parts[1] && r.month === parts[2]);
+
+  document.getElementById('id-title').textContent = inst.customer;
+  document.getElementById('id-sub').innerHTML = `<b>Installation:</b> ${esc(inst.month)} ${inst.year} &nbsp;|&nbsp; <b>Model:</b> ${esc(inst.models)||'—'} &nbsp;|&nbsp; <b>Tech(s):</b> ${esc(inst.techs)||'—'}`;
+
+  // Build record cards
+  const safeKey = key.replace(/'/g,"\\'");
+  let html = '';
+  rawRecs.forEach((r, idx) => {
+    const isIssue = hasIssue(r);
+    const statusBadge = !isIssue
+      ? '<span class="badge closed">K-No Issues</span>'
+      : r.statusIA === 'open'
+        ? '<span class="badge open">Open</span>'
+        : r.statusIA === 'in-process'
+          ? '<span class="badge inprog">In-Process</span>'
+          : '<span class="badge closed">Closed</span>';
+    html += `<div class="wd-card${!isIssue?' closed':''}" style="border-left-color:${isIssue?'var(--danger)':'var(--success)'}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-weight:700;color:var(--primary);font-size:14px">Record #${idx+1}</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btns" style="padding:4px 10px;font-size:11px" onclick="event.stopPropagation();openEditInstall('${safeKey}',${idx})">✏️ Edit</button>
+          ${statusBadge}
+        </div>
+      </div>
+      <div class="wd-row"><span class="wd-lbl">Problem Code:</span><span class="wd-val">${esc(r.problemCode)||'—'}</span></div>
+      ${r.issue ? `<div class="wd-row" style="flex-direction:column"><span class="wd-lbl">Issue:</span><span class="wd-val" style="margin-top:2px">${esc(r.issue)}</span></div>` : ''}
+      ${r.rootCause ? `<div class="wd-row" style="flex-direction:column"><span class="wd-lbl">Root Cause:</span><span class="wd-val" style="margin-top:2px">${esc(r.rootCause)}</span></div>` : ''}
+      ${r.immediateAction ? `<div class="wd-row" style="flex-direction:column"><span class="wd-lbl">Immediate Action:</span><span class="wd-val" style="margin-top:2px">${esc(r.immediateAction)}</span></div>` : ''}
+      <div class="wd-row">
+        <span class="wd-lbl">Model:</span><span class="wd-val">${esc(r.model)||'—'}</span>
+        <span class="wd-lbl" style="margin-left:12px">Size:</span><span class="wd-val">${esc(r.sizeOptions)||'—'}</span>
+        <span class="wd-lbl" style="margin-left:12px">Return Visit:</span><span class="wd-val">${(r.returnVisit||'').toLowerCase()==='yes'||(r.returnVisit||'').toLowerCase()==='true'?'Yes':'No'}</span>
+      </div>
+      ${r.preventativeAction ? `<div class="wd-row" style="flex-direction:column"><span class="wd-lbl">Preventative Action:</span><span class="wd-val" style="margin-top:2px">${esc(r.preventativeAction)}${r.paOwner?' ('+esc(r.paOwner)+')':''}${r.statusPA?' — '+esc(r.statusPA):''}</span></div>` : ''}
+    </div>`;
+  });
+  document.getElementById('id-body').innerHTML = html;
+
+  // Warranty section — always visible, with add button
+  const wBody = document.getElementById('id-warranty-body');
+  // Store current key for the add warranty button
+  document.getElementById('id-add-warranty-btn')._installKey = key;
+
+  // Show warranty expiry status
+  const monthIdx = MONTHS_ORDER.indexOf(inst.month);
+  const expiryDate = monthIdx >= 0 ? new Date(inst.year + 1, monthIdx + 1, 1) : null;
+  const isActive = expiryDate ? new Date() < expiryDate : false;
+  const expiryLabel = isActive
+    ? '<span style="color:#27ae60;font-size:12px;margin-left:8px">● Warranty active</span>'
+    : '<span style="color:var(--text-light);font-size:12px;margin-left:8px">Warranty expired</span>';
+
+  if (inst.warranty.length > 0) {
+    let wHtml = '';
+    inst.warranty.forEach((w, idx) => {
+      const isClosed = (w.status||'').toLowerCase() === 'closed';
+      wHtml += `<div class="wd-card${isClosed?' closed':''}" style="cursor:pointer" onclick="event.stopPropagation();openEditClaim('${safeKey}',${idx})">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-weight:700;color:var(--warning);font-size:13px">Claim #${idx+1}</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn btns" style="padding:3px 8px;font-size:10px" onclick="event.stopPropagation();openEditClaim('${safeKey}',${idx})">✏️ Edit</button>
+            <span class="badge ${isClosed?'closed':(w.status||'').toLowerCase()==='open'?'open':'inprog'}">${esc(w.status)||'Open'}</span>
+          </div>
+        </div>
+        <div class="wd-row">
+          <span class="wd-lbl">Return Date:</span><span class="wd-val">${fmtDate(w.date)}</span>
+          <span class="wd-lbl" style="margin-left:12px">Problem Code:</span><span class="wd-val">${esc(w.problemCode)||'—'}</span>
+          <span class="wd-lbl" style="margin-left:12px">Cost:</span><span class="wd-val">${w.cost ? '$' + parseFloat((w.cost||'').replace(/[^0-9.]/g,'')).toLocaleString() : '—'}</span>
+        </div>
+        ${w.issue ? `<div class="wd-row"><span class="wd-lbl">Issue:</span><span class="wd-val">${esc(w.issue)}</span></div>` : ''}
+      </div>`;
+    });
+    wBody.innerHTML = wHtml;
+  } else {
+    wBody.innerHTML = `<div style="padding:12px 0;color:var(--text-light);font-size:13px">No warranty claims yet. ${expiryLabel}</div>`;
+  }
+
+  document.getElementById('id-panel').classList.add('open');
+}
+function closeID() { document.getElementById('id-panel').classList.remove('open'); }
+
+/** Add warranty claim directly from the installation detail card */
+function addWarrantyFromCard() {
+  const key = document.getElementById('id-add-warranty-btn')._installKey;
+  if (!key) return;
+  const parts = key.split('|');
+  const installs = getInstallations(FD);
+  const inst = installs.find(i => (i.customer + '|' + i.year + '|' + i.month) === key);
+  if (!inst) return;
+
+  // Close the detail card
+  closeID();
+
+  // Populate problem code dropdown
+  const awpc = document.getElementById('aw-pc');
+  while (awpc.options.length > 1) awpc.remove(1);
+  const pcs = [...new Set(D.map(r=>r.problemCode).filter(Boolean))].sort();
+  pcs.forEach(p => awpc.add(new Option(p, p)));
+
+  // Pre-select the installation in the dropdown
+  const sel = document.getElementById('aw-install');
+  while (sel.options.length > 1) sel.remove(1);
+  // Add all installs but auto-select the matching one
+  const allInstalls = getInstallations(FD);
+  allInstalls.sort((a,b) => b.year - a.year || MONTHS_ORDER.indexOf(b.month) - MONTHS_ORDER.indexOf(a.month));
+  let matchIdx = -1;
+  allInstalls.forEach((inst2, idx) => {
+    const label = `${inst2.customer} — ${inst2.month} ${inst2.year} (${inst2.models || 'N/A'})`;
+    sel.add(new Option(label, idx));
+    if (inst2.customer === parts[0] && String(inst2.year) === parts[1] && inst2.month === parts[2]) {
+      matchIdx = idx;
+    }
+  });
+  sel._installs = allInstalls;
+
+  if (matchIdx >= 0) {
+    sel.value = matchIdx;
+    awInstallChanged(); // trigger the info display
+  }
+
+  // Reset the form fields
+  ['aw-date','aw-issue','aw-resolution','aw-tech','aw-cost'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  ['aw-status','aw-rv'].forEach(id => {
+    const el = document.getElementById(id);
+    el.value = el.options[0].value;
+  });
+
+  document.getElementById('aw-panel').classList.add('open');
+}
+
+let _editInstallKey = '', _editInstallIdx = -1;
+function openEditInstall(key, recIdx) {
+  const parts = key.split('|');
+  const rawRecs = D.filter(r => r.recordType !== 'Warranty' && r.customer === parts[0] && String(r.year) === parts[1] && r.month === parts[2]);
+  if (!rawRecs[recIdx]) return;
+  const r = rawRecs[recIdx];
+  _editInstallKey = key;
+  _editInstallIdx = recIdx;
+
+  document.getElementById('ie-title').textContent = 'Edit Record — ' + r.customer;
+  document.getElementById('ie-sub').textContent = r.month + ' ' + r.year + ' | Record #' + (recIdx + 1);
+
+  document.getElementById('ie-model').value = r.model || '';
+  document.getElementById('ie-size').value = r.sizeOptions || '';
+  document.getElementById('ie-techs').value = r.techs || '';
+  document.getElementById('ie-issue').value = r.issue || '';
+  document.getElementById('ie-root').value = r.rootCause || '';
+  document.getElementById('ie-ia').value = r.immediateAction || '';
+  document.getElementById('ie-pa').value = r.preventativeAction || '';
+  document.getElementById('ie-pao').value = r.paOwner || '';
+
+  // Populate problem code dropdown
+  const pcSel = document.getElementById('ie-pc');
+  while (pcSel.options.length > 1) pcSel.remove(1);
+  const pcs = [...new Set(D.map(r2=>r2.problemCode).filter(Boolean))].sort();
+  pcs.forEach(p => pcSel.add(new Option(p, p)));
+  pcSel.value = r.problemCode || '';
+
+  document.getElementById('ie-sia').value = r.statusIA || '';
+  document.getElementById('ie-spa').value = r.statusPA || '';
+  const rvVal = (r.returnVisit||'').toLowerCase();
+  document.getElementById('ie-rv').value = rvVal === 'yes' ? 'Yes' : rvVal === 'true' ? 'True' : '';
+
+  closeID();
+  document.getElementById('ie-panel').classList.add('open');
+}
+function closeIE() { document.getElementById('ie-panel').classList.remove('open'); }
+
+function saveEditInstall() {
+  const parts = _editInstallKey.split('|');
+  const rawRecs = D.filter(r => r.recordType !== 'Warranty' && r.customer === parts[0] && String(r.year) === parts[1] && r.month === parts[2]);
+  if (!rawRecs[_editInstallIdx]) { alert('Could not find record.'); return; }
+  const rec = rawRecs[_editInstallIdx];
+
+  rec.model = document.getElementById('ie-model').value.trim();
+  rec.sizeOptions = document.getElementById('ie-size').value.trim();
+  rec.techs = document.getElementById('ie-techs').value.trim();
+  rec.problemCode = document.getElementById('ie-pc').value;
+  rec.issue = document.getElementById('ie-issue').value.trim();
+  rec.rootCause = document.getElementById('ie-root').value.trim();
+  rec.statusIA = document.getElementById('ie-sia').value.toLowerCase();
+  rec.returnVisit = document.getElementById('ie-rv').value;
+  rec.immediateAction = document.getElementById('ie-ia').value.trim();
+  rec.statusPA = document.getElementById('ie-spa').value.toLowerCase();
+  rec.preventativeAction = document.getElementById('ie-pa').value.trim();
+  rec.paOwner = document.getElementById('ie-pao').value.trim();
+
+  closeIE();
+  applyFilters();
+  syncToSheets();
+  alert('Record updated!' + (_gsAccessToken ? ' Auto-saving to Google Sheets…' : ' Use ⬇ Export CSV to save your changes.'));
 }
 
 function renderInstallsTable() {
@@ -1667,13 +2172,20 @@ function renderInstallsTable() {
   const total = installs.length;
   const clean = installs.filter(i => i.isClean).length;
   const withIss = total - clean;
+  const totalWarranty = installs.reduce((s, i) => s + i.warrantyCount, 0);
+  const openWarranty = installs.reduce((s, i) => s + i.warrantyOpen, 0);
 
   const kiTotal = document.getElementById('ki-total');
   const kiClean = document.getElementById('ki-clean');
   const kiIssues = document.getElementById('ki-issues');
+  const kiWarranty = document.getElementById('ki-warranty');
+  const kiWarrantySub = document.getElementById('ki-warranty-sub');
   if (kiTotal) kiTotal.textContent = total.toLocaleString();
   if (kiClean) kiClean.textContent = clean.toLocaleString() + (total ? ' (' + Math.round(clean/total*100) + '%)' : '');
   if (kiIssues) kiIssues.textContent = withIss.toLocaleString() + (total ? ' (' + Math.round(withIss/total*100) + '%)' : '');
+  if (kiWarranty) kiWarranty.textContent = totalWarranty.toLocaleString();
+  if (kiWarrantySub) kiWarrantySub.textContent = openWarranty > 0 ? openWarranty + ' open' : 'None open';
+  if (kiWarrantySub) kiWarrantySub.className = 'ktr ' + (openWarranty > 0 ? 'up' : 'down');
 
   const countEl = document.getElementById('install-count');
   if (countEl) countEl.textContent = total.toLocaleString() + ' installations';
@@ -1687,7 +2199,7 @@ function renderInstallsTable() {
   if (!tbody) return;
 
   if (pageRows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" style="padding:40px;text-align:center;color:var(--text-light)">No installations match your filters</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="padding:40px;text-align:center;color:var(--text-light)">No installations match your filters</td></tr>';
     document.getElementById('installs-pagination').innerHTML = '';
     return;
   }
@@ -1701,7 +2213,18 @@ function renderInstallsTable() {
     const issueSummary = i.isClean
       ? '<small style="color:var(--success)">No issues</small>'
       : `<small>${i.issueRecords} issue${i.issueRecords!==1?'s':''}</small>`;
-    return `<tr${i.isClean?' style="background:#f8fdf9"':''}>
+    let warrantyCell = '—';
+    if (i.warrantyCount > 0) {
+      const wKey = esc(i.customer + '|' + i.year + '|' + i.month).replace(/'/g,"\\'");
+      warrantyCell = `<span class="warranty-click" onclick="showWarrantyDetail('${wKey}')" style="display:inline-flex;align-items:center;gap:4px">` +
+        `<span class="badge ${i.warrantyOpen > 0 ? 'inprog' : 'closed'}">${i.warrantyCount} claim${i.warrantyCount!==1?'s':''}</span>` +
+        (i.warrantyCost > 0 ? `<small style="color:var(--text-light)">$${i.warrantyCost.toLocaleString()}</small>` : '') +
+        `</span>`;
+    } else if (i.warrantyActive) {
+      warrantyCell = '<small style="color:#27ae60">Under warranty</small>';
+    }
+    const iKey = esc(i.customer + '|' + i.year + '|' + i.month).replace(/'/g,"\\'");
+    return `<tr style="cursor:pointer;${i.isClean?'background:#f8fdf9':''}" onclick="showInstallDetail('${iKey}')">
       <td><b>${i.year}</b></td>
       <td>${esc(i.month)}</td>
       <td class="td-trunc" title="${esc(i.customer)}">${esc(i.customer)}</td>
@@ -1709,10 +2232,272 @@ function renderInstallsTable() {
       <td class="td-trunc" title="${esc(i.techs)}">${esc(i.techs)}</td>
       <td>${issueSummary}</td>
       <td>${statusBadge}</td>
+      <td>${warrantyCell}</td>
     </tr>`;
   }).join('');
 
   renderPagination('installs-pagination', installPage, totalPages, (p)=>{ installPage=p; renderInstallsTable(); });
+}
+
+/* ============================================================
+   WARRANTY DETAIL MODAL
+   Shows all warranty claims for a given installation
+   ============================================================ */
+function showWarrantyDetail(key) {
+  const installs = getInstallations(FD);
+  const inst = installs.find(i => (i.customer + '|' + i.year + '|' + i.month) === key);
+  if (!inst || inst.warranty.length === 0) return;
+
+  document.getElementById('wd-title').textContent = 'Warranty Claims — ' + inst.customer;
+  document.getElementById('wd-sub').innerHTML = `<b>Installation:</b> ${esc(inst.month)} ${inst.year} &nbsp;|&nbsp; <b>Model:</b> ${esc(inst.models)||'—'} &nbsp;|&nbsp; <b>Tech(s):</b> ${esc(inst.techs)||'—'} &nbsp;|&nbsp; <b>Claims:</b> ${inst.warrantyCount} &nbsp;|&nbsp; <b>Total Cost:</b> $${inst.warrantyCost.toLocaleString()}`;
+
+  const safeKey = (inst.customer + '|' + inst.year + '|' + inst.month).replace(/'/g,"\\'");
+  let html = '';
+  inst.warranty.forEach((w, idx) => {
+    const isClosed = (w.status||'').toLowerCase() === 'closed';
+    html += `<div class="wd-card${isClosed?' closed':''}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-weight:700;color:var(--primary);font-size:14px">Claim #${idx+1}</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btns" style="padding:4px 10px;font-size:11px" onclick="openEditClaim('${safeKey}',${idx})">✏️ Edit</button>
+          <span class="badge ${isClosed?'closed':(w.status||'').toLowerCase()==='open'?'open':'inprog'}">${esc(w.status)||'Open'}</span>
+        </div>
+      </div>
+      <div class="wd-row"><span class="wd-lbl">Return Date:</span><span class="wd-val">${fmtDate(w.date)}</span></div>
+      <div class="wd-row"><span class="wd-lbl">Problem Code:</span><span class="wd-val">${esc(w.problemCode)||'—'}</span></div>
+      <div class="wd-row" style="flex-direction:column"><span class="wd-lbl">Issue:</span><span class="wd-val" style="margin-top:2px">${esc(w.issue)||'—'}</span></div>
+      ${w.resolution ? `<div class="wd-row" style="flex-direction:column"><span class="wd-lbl">Resolution:</span><span class="wd-val" style="margin-top:2px">${esc(w.resolution)}</span></div>` : ''}
+      <div class="wd-row">
+        <span class="wd-lbl">Tech:</span><span class="wd-val">${esc(w.tech)||'—'}</span>
+        <span class="wd-lbl" style="margin-left:12px">Return Visit:</span><span class="wd-val">${esc(w.returnVisit)||'No'}</span>
+        <span class="wd-lbl" style="margin-left:12px">Cost:</span><span class="wd-val">${w.cost ? '$' + parseFloat((w.cost||'').replace(/[^0-9.]/g,'')).toLocaleString() : '—'}</span>
+      </div>
+    </div>`;
+  });
+  document.getElementById('wd-body').innerHTML = html;
+  document.getElementById('wd-panel').classList.add('open');
+}
+function closeWD() { document.getElementById('wd-panel').classList.remove('open'); }
+
+/** Format a date string (yyyy-mm-dd or other) to mm/dd/yyyy */
+function fmtDate(d) {
+  if (!d) return '—';
+  // Try yyyy-mm-dd format first
+  const m = (d+'').match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return m[2].padStart(2,'0') + '/' + m[3].padStart(2,'0') + '/' + m[1];
+  // Try mm/dd/yyyy already
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(d)) return d;
+  return d;
+}
+
+/** Open a single warranty claim for editing.
+    key = 'customer|year|month', claimIdx = index within that installation's warranty array */
+let _editKey = '', _editIdx = -1;
+function openEditClaim(key, claimIdx) {
+  const installs = getInstallations(FD);
+  const inst = installs.find(i => (i.customer + '|' + i.year + '|' + i.month) === key);
+  if (!inst || !inst.warranty[claimIdx]) return;
+  const w = inst.warranty[claimIdx];
+  _editKey = key;
+  _editIdx = claimIdx;
+
+  // Find the matching raw record in D
+  const parts = key.split('|');
+  const rawMatches = D.filter(r => r.recordType === 'Warranty' && r.customer === parts[0] && String(r.year) === parts[1] && r.month === parts[2]);
+  if (!rawMatches[claimIdx]) return;
+
+  // Populate edit form
+  document.getElementById('we-date').value = rawMatches[claimIdx].warrantyDate || '';
+  document.getElementById('we-issue').value = rawMatches[claimIdx].warrantyIssue || '';
+  document.getElementById('we-resolution').value = rawMatches[claimIdx].warrantyResolution || '';
+  document.getElementById('we-tech').value = rawMatches[claimIdx].warrantyTech || '';
+  document.getElementById('we-cost').value = rawMatches[claimIdx].warrantyCost || '';
+
+  // Populate problem code dropdown
+  const pcSel = document.getElementById('we-pc');
+  while (pcSel.options.length > 1) pcSel.remove(1);
+  const pcs = [...new Set(D.map(r=>r.problemCode).filter(Boolean))].sort();
+  pcs.forEach(p => pcSel.add(new Option(p, p)));
+  pcSel.value = rawMatches[claimIdx].warrantyProblemCode || '';
+
+  document.getElementById('we-status').value = (rawMatches[claimIdx].warrantyStatus||'Open');
+  // Normalize status to match option values
+  const sVal = (rawMatches[claimIdx].warrantyStatus||'').toLowerCase();
+  if (sVal === 'open') document.getElementById('we-status').value = 'Open';
+  else if (sVal === 'in-process') document.getElementById('we-status').value = 'In-Process';
+  else if (sVal === 'closed') document.getElementById('we-status').value = 'Closed';
+
+  document.getElementById('we-rv').value = (rawMatches[claimIdx].warrantyReturnVisit||'').toLowerCase() === 'yes' ? 'Yes' : '';
+
+  document.getElementById('we-title').textContent = 'Edit Warranty Claim — ' + inst.customer;
+  document.getElementById('we-sub').textContent = inst.month + ' ' + inst.year + ' | Claim #' + (claimIdx + 1);
+  closeWD();
+  document.getElementById('we-panel').classList.add('open');
+}
+
+function closeWE() { document.getElementById('we-panel').classList.remove('open'); }
+
+function saveEditClaim() {
+  const parts = _editKey.split('|');
+  const rawMatches = D.filter(r => r.recordType === 'Warranty' && r.customer === parts[0] && String(r.year) === parts[1] && r.month === parts[2]);
+  if (!rawMatches[_editIdx]) { alert('Could not find record.'); return; }
+  const rec = rawMatches[_editIdx];
+
+  rec.warrantyDate = document.getElementById('we-date').value;
+  rec.warrantyIssue = document.getElementById('we-issue').value.trim();
+  rec.warrantyProblemCode = document.getElementById('we-pc').value;
+  rec.warrantyStatus = document.getElementById('we-status').value.toLowerCase();
+  rec.warrantyResolution = document.getElementById('we-resolution').value.trim();
+  rec.warrantyTech = document.getElementById('we-tech').value.trim();
+  rec.warrantyReturnVisit = document.getElementById('we-rv').value;
+  rec.warrantyCost = document.getElementById('we-cost').value.trim();
+
+  closeWE();
+  applyFilters();
+  syncToSheets();
+  alert('Warranty claim updated!' + (_gsAccessToken ? ' Auto-saving to Google Sheets…' : ' Use ⬇ Export CSV to save your changes.'));
+}
+
+/* ============================================================
+   WARRANTY PAGE
+   Dedicated page listing all warranty records with install date
+   ============================================================ */
+function getWarrantyRecords(data) {
+  // Collect warranty rows along with their parent installation info
+  const installMap = {};
+  const warranties = [];
+  data.forEach(r => {
+    const key = r.customer + '|' + r.year + '|' + r.month;
+    if (r.recordType !== 'Warranty') {
+      if (!installMap[key]) {
+        installMap[key] = {
+          customer: r.customer, year: r.year, month: r.month,
+          models: new Set(), techs: new Set()
+        };
+      }
+      if (r.model || r.sizeOptions) installMap[key].models.add((r.model||'') + (r.sizeOptions ? ' ' + r.sizeOptions : ''));
+      if (r.techs) installMap[key].techs.add(r.techs);
+    }
+  });
+  data.forEach(r => {
+    if (r.recordType !== 'Warranty') return;
+    const key = r.customer + '|' + r.year + '|' + r.month;
+    const parent = installMap[key];
+    // Track claim index within this installation
+    const claimIdx = warranties.filter(w2 => w2._key === key).length;
+    warranties.push({
+      _key: key,
+      _claimIdx: claimIdx,
+      customer: r.customer,
+      installYear: r.year,
+      installMonth: r.month,
+      installDate: r.month + ' ' + r.year,
+      models: parent ? [...parent.models].join(', ') : '',
+      installTechs: parent ? [...parent.techs].join(', ') : '',
+      warrantyDate: r.warrantyDate || '',
+      warrantyIssue: r.warrantyIssue || '',
+      warrantyProblemCode: r.warrantyProblemCode || '',
+      warrantyStatus: r.warrantyStatus || 'Open',
+      warrantyResolution: r.warrantyResolution || '',
+      warrantyTech: r.warrantyTech || '',
+      warrantyReturnVisit: r.warrantyReturnVisit || '',
+      warrantyCost: r.warrantyCost || ''
+    });
+  });
+  return warranties;
+}
+
+function sortWarranty(col) {
+  if (warrantySortCol === col) warrantySortDir *= -1;
+  else { warrantySortCol = col; warrantySortDir = -1; }
+  warrantyPage = 1;
+  renderWarrantyPage();
+}
+
+function renderWarrantyPage() {
+  const search = (document.getElementById('warranty-search')?.value||'').toLowerCase();
+  let records = getWarrantyRecords(FD);
+
+  if (search) {
+    records = records.filter(w =>
+      [w.customer,w.warrantyIssue,w.warrantyProblemCode,w.warrantyTech,w.warrantyStatus,w.installDate,w.models].join('|').toLowerCase().includes(search)
+    );
+  }
+
+  // Sort
+  records.sort((a,b) => {
+    let av = a[warrantySortCol]||'', bv = b[warrantySortCol]||'';
+    if (warrantySortCol === 'warrantyCost') {
+      av = parseFloat((av+'').replace(/[^0-9.]/g,''))||0;
+      bv = parseFloat((bv+'').replace(/[^0-9.]/g,''))||0;
+    }
+    if (av < bv) return -warrantySortDir;
+    if (av > bv) return warrantySortDir;
+    return 0;
+  });
+
+  // KPIs
+  const total = records.length;
+  const openCount = records.filter(w => (w.warrantyStatus||'').toLowerCase() === 'open' || (w.warrantyStatus||'').toLowerCase() === 'in-process').length;
+  const closedCount = records.filter(w => (w.warrantyStatus||'').toLowerCase() === 'closed').length;
+  const totalCost = records.reduce((s,w) => s + (parseFloat((w.warrantyCost||'').replace(/[^0-9.]/g,''))||0), 0);
+
+  const kwTotal = document.getElementById('kw-total');
+  const kwOpen = document.getElementById('kw-open');
+  const kwClosed = document.getElementById('kw-closed');
+  const kwCost = document.getElementById('kw-cost');
+  if (kwTotal) kwTotal.textContent = total.toLocaleString();
+  if (kwOpen) kwOpen.textContent = openCount.toLocaleString();
+  if (kwClosed) kwClosed.textContent = closedCount.toLocaleString();
+  if (kwCost) kwCost.textContent = '$' + totalCost.toLocaleString();
+
+  // Update sidebar badge
+  const badge = document.getElementById('warranty-badge');
+  if (badge) {
+    const allWarranties = getWarrantyRecords(FD);
+    const allOpen = allWarranties.filter(w => (w.warrantyStatus||'').toLowerCase() === 'open' || (w.warrantyStatus||'').toLowerCase() === 'in-process').length;
+    badge.textContent = allOpen;
+    badge.style.display = allOpen > 0 ? '' : 'none';
+  }
+
+  const countEl = document.getElementById('warranty-count');
+  if (countEl) countEl.textContent = total.toLocaleString() + ' warranty claim' + (total!==1?'s':'');
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  if (warrantyPage > totalPages) warrantyPage = 1;
+  const start = (warrantyPage-1)*PAGE_SIZE;
+  const pageRows = records.slice(start, start+PAGE_SIZE);
+
+  const tbody = document.getElementById('warranty-tbody');
+  if (!tbody) return;
+
+  if (pageRows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="10" style="padding:40px;text-align:center;color:var(--text-light)">No warranty claims found</td></tr>';
+    document.getElementById('warranty-pagination').innerHTML = '';
+    return;
+  }
+
+  tbody.innerHTML = pageRows.map(w => {
+    const statusCls = (w.warrantyStatus||'').toLowerCase() === 'closed' ? 'closed' : (w.warrantyStatus||'').toLowerCase() === 'open' ? 'open' : 'inprog';
+    const costVal = parseFloat((w.warrantyCost||'').replace(/[^0-9.]/g,''))||0;
+    const rv = (w.warrantyReturnVisit||'').toLowerCase();
+    const rvBadge = rv === 'yes' || rv === 'true' ? '<span class="badge open" style="font-size:10px">Yes</span>' : '<small style="color:var(--text-light)">No</small>';
+    const safeKey = esc(w._key).replace(/'/g,"\\'");
+    return `<tr style="cursor:pointer" onclick="showWarrantyDetail('${safeKey}')">
+      <td>${fmtDate(w.warrantyDate)}</td>
+      <td class="td-trunc" title="${esc(w.customer)}">${esc(w.customer)}</td>
+      <td><small style="color:var(--primary);font-weight:600">${esc(w.installDate)}</small></td>
+      <td class="td-trunc" title="${esc(w.models)}">${esc(w.models)||'—'}</td>
+      <td>${esc(w.warrantyProblemCode)||'—'}</td>
+      <td class="td-trunc" title="${esc(w.warrantyIssue)}">${esc(w.warrantyIssue)||'—'}</td>
+      <td>${esc(w.warrantyTech)||'—'}</td>
+      <td><span class="badge ${statusCls}">${esc(w.warrantyStatus)||'Open'}</span></td>
+      <td>${rvBadge}</td>
+      <td>${costVal > 0 ? '$' + costVal.toLocaleString() : '—'}</td>
+    </tr>`;
+  }).join('');
+
+  renderPagination('warranty-pagination', warrantyPage, totalPages, (p)=>{ warrantyPage=p; renderWarrantyPage(); });
 }
 
 /* ============================================================
@@ -1894,8 +2679,10 @@ function getTechStats(data) {
     const names = splitTechNames(inst.techs);
     const key = `${inst.customer}|${inst.year}|${inst.month}`;
     const pcs = installPCMap[key] || [];
-    // Success = installation where ALL records have K-No Issues (or no problem code)
-    const isCleanInstall = pcs.length > 0 && pcs.every(pc => pc.toLowerCase() === 'k-no issues');
+    // Problem codes that do NOT count against a tech's success rate
+    const EXCLUDED_PC = ['k-no issues', 'd-order entry', 'e-sales error'];
+    // Success = all problem codes are either K-No Issues, Order Entry, or Sales Error
+    const isCleanInstall = pcs.length > 0 && pcs.every(pc => EXCLUDED_PC.includes(pc.toLowerCase()));
 
     names.forEach(rawName => {
       const name = canonicalTechName(rawName);
@@ -1906,9 +2693,9 @@ function getTechStats(data) {
         techMap[name].clean++;
       } else {
         techMap[name].withIssues++;
-        // Track problem codes (exclude K-No Issues)
+        // Track problem codes (exclude ones that don't affect success rate)
         pcs.forEach(pc => {
-          if (pc.toLowerCase() !== 'k-no issues') {
+          if (!EXCLUDED_PC.includes(pc.toLowerCase())) {
             techMap[name].problemCodes[pc] = (techMap[name].problemCodes[pc] || 0) + 1;
           }
         });
@@ -2335,31 +3122,206 @@ function renderAnalytics() {
     options:{ responsive:true, plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:10}}}, scales:{y:{beginAtZero:true,grid:{color:'#eee'}},x:{grid:{display:false}}} }
   });
 
-  // Closure rate — only actual issues
-  destroyChart('a-closure');
-  const closureYears = [...new Set(issueData.map(r=>r.year))].sort();
-  charts['a-closure'] = new Chart(document.getElementById('a-closure'), {
-    type: 'bar',
-    data: {
-      labels: closureYears,
-      datasets:[{
-        label: '% Closed', type:'line',
-        data: closureYears.map(y=>{
-          const yr = issueData.filter(r=>r.year===y);
-          return yr.length ? Math.round(yr.filter(r=>r.statusIA==='closed').length/yr.length*100) : 0;
-        }),
-        borderColor:'#27ae60', backgroundColor:'#27ae6020', yAxisID:'y2', fill:true, tension:.3
-      },{
-        label: 'Open', data: closureYears.map(y=>issueData.filter(r=>r.year===y&&r.statusIA==='open').length),
-        backgroundColor:'#e74c3ccc', borderRadius:4
-      },{
-        label: 'Closed', data: closureYears.map(y=>issueData.filter(r=>r.year===y&&r.statusIA==='closed').length),
-        backgroundColor:'#27ae60cc', borderRadius:4
-      }]
-    },
-    options:{ responsive:true, plugins:{legend:{position:'top',labels:{font:{size:11},boxWidth:12}}},
-      scales:{y:{beginAtZero:true,stacked:false,grid:{color:'#eee'}},y2:{position:'right',min:0,max:100,ticks:{callback:v=>v+'%'},grid:{display:false}},x:{grid:{display:false}}} }
-  });
+  // Issues by month with problem code breakdown (stacked bar)
+  destroyChart('a-issues-by-month');
+  if (issueData.length > 0) {
+    // Get all month keys sorted chronologically
+    const ibmMap = {};
+    const ibmPCMap = {};
+    issueData.forEach(r => {
+      const key = `${r.year}-${String(MONTHS_ORDER.indexOf(r.month)+1).padStart(2,'0')}`;
+      ibmMap[key] = (ibmMap[key]||0)+1;
+      const pc = r.problemCode || 'Unknown';
+      if (!ibmPCMap[pc]) ibmPCMap[pc] = {};
+      ibmPCMap[pc][key] = (ibmPCMap[pc][key]||0)+1;
+    });
+    const ibmKeys = Object.keys(ibmMap).sort();
+    // Get top problem codes by total count
+    const ibmPCs = Object.entries(ibmPCMap).sort((a,b)=>{
+      const aTotal = Object.values(a[1]).reduce((s,v)=>s+v,0);
+      const bTotal = Object.values(b[1]).reduce((s,v)=>s+v,0);
+      return bTotal - aTotal;
+    });
+    const topIBM = ibmPCs.slice(0, 8);
+    const otherPCs = ibmPCs.slice(8);
+    const datasets = topIBM.map(([ pc, monthData ], i) => ({
+      label: pc,
+      data: ibmKeys.map(k => monthData[k] || 0),
+      backgroundColor: COLORS[i % COLORS.length] + 'cc',
+      borderRadius: 2
+    }));
+    // Combine remaining into "Other"
+    if (otherPCs.length > 0) {
+      const otherData = ibmKeys.map(k =>
+        otherPCs.reduce((s, [, monthData]) => s + (monthData[k]||0), 0)
+      );
+      if (otherData.some(v => v > 0)) {
+        datasets.push({
+          label: 'Other',
+          data: otherData,
+          backgroundColor: '#bdc3c7cc',
+          borderRadius: 2
+        });
+      }
+    }
+    charts['a-issues-by-month'] = new Chart(document.getElementById('a-issues-by-month'), {
+      type: 'bar',
+      data: { labels: ibmKeys, datasets },
+      options: {
+        responsive: true,
+        plugins: { legend: { position:'top', labels: { font:{size:10}, boxWidth:10 } } },
+        scales: {
+          y: { beginAtZero:true, stacked:true, grid:{color:'#eee'}, title:{display:true,text:'Issues',font:{size:11}} },
+          x: { stacked:true, grid:{display:false}, ticks:{maxTicksLimit:18,font:{size:9}} }
+        }
+      }
+    });
+  }
+
+  // ---- WARRANTY & RETURN VISIT ANALYTICS ----
+  const wRecords = getWarrantyRecords(FD);
+  const installs = getInstallations(FD);
+
+  // KPIs
+  const rvTotal = wRecords.filter(w => {
+    const rv = (w.warrantyReturnVisit||'').toLowerCase();
+    return rv === 'yes' || rv === 'true';
+  }).length;
+  const wCostTotal = wRecords.reduce((s,w) => s + (parseFloat((w.warrantyCost||'').replace(/[^0-9.]/g,''))||0), 0);
+  const wCostAvg = wRecords.length > 0 ? wCostTotal / wRecords.length : 0;
+  const multiClaimInstalls = installs.filter(i => i.warrantyCount > 1);
+
+  const elRV = document.getElementById('aw-rv-total');
+  const elCostT = document.getElementById('aw-cost-total');
+  const elCostA = document.getElementById('aw-cost-avg');
+  const elMulti = document.getElementById('aw-multi');
+  const elMultiSub = document.getElementById('aw-multi-sub');
+  if (elRV) elRV.textContent = rvTotal.toLocaleString();
+  if (elCostT) elCostT.textContent = '$' + wCostTotal.toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:0});
+  if (elCostA) elCostA.textContent = '$' + wCostAvg.toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:0});
+  if (elMulti) elMulti.textContent = multiClaimInstalls.length;
+  if (elMultiSub) {
+    const multiTotal = multiClaimInstalls.reduce((s,i)=>s+i.warrantyCount,0);
+    elMultiSub.textContent = multiClaimInstalls.length > 0 ? multiTotal + ' total claims' : 'None';
+    elMultiSub.className = 'ktr ' + (multiClaimInstalls.length > 0 ? 'up' : 'neutral');
+  }
+
+  // Warranty claims & cost by month — stacked bar, each segment = one claim
+  destroyChart('a-warranty-monthly');
+  if (wRecords.length > 0) {
+    // Group claims by month
+    const claimsByMonth = {};
+    wRecords.forEach(w => {
+      const d = w.warrantyDate || '';
+      const key = d ? d.slice(0,7) : w.installMonth + ' ' + w.installYear;
+      if (!claimsByMonth[key]) claimsByMonth[key] = [];
+      claimsByMonth[key].push(w);
+    });
+    const wmKeys = Object.keys(claimsByMonth).sort();
+    // Find max claims in any single month
+    const maxClaims = Math.max(...wmKeys.map(k => claimsByMonth[k].length));
+
+    // Build one dataset per "claim slot" so bars stack
+    const CLAIM_COLORS = ['#e67e22','#2d5a8e','#e74c3c','#27ae60','#8e44ad','#16a085','#f39c12','#d35400','#2980b9','#c0392b','#1e3a5f','#7f8c8d','#e67e22','#2d5a8e','#e74c3c','#27ae60','#8e44ad','#16a085','#f39c12','#d35400'];
+    // Store claim metadata for click handling
+    const _warrantyChartMeta = [];
+    const datasets = [];
+    for (let slot = 0; slot < maxClaims; slot++) {
+      const data = [];
+      const bgColors = [];
+      const metaRow = [];
+      wmKeys.forEach((mKey, mIdx) => {
+        const claims = claimsByMonth[mKey];
+        if (slot < claims.length) {
+          const w = claims[slot];
+          const cost = parseFloat((w.warrantyCost||'').replace(/[^0-9.]/g,'')) || 0;
+          data.push(cost > 0 ? cost : 0.5); // Use small value for zero-cost claims so they're visible
+          // Color by customer for visual grouping
+          const custHash = w.customer.split('').reduce((h,c) => ((h << 5) - h) + c.charCodeAt(0), 0);
+          bgColors.push(CLAIM_COLORS[Math.abs(custHash) % CLAIM_COLORS.length] + 'cc');
+          metaRow.push({ key: w._key, claimIdx: w._claimIdx, customer: w.customer, cost, issue: w.warrantyIssue });
+        } else {
+          data.push(0);
+          bgColors.push('transparent');
+          metaRow.push(null);
+        }
+      });
+      _warrantyChartMeta.push(metaRow);
+      datasets.push({
+        label: slot === 0 ? 'Claim Cost ($)' : '',
+        data,
+        backgroundColor: bgColors,
+        borderRadius: 2,
+        borderSkipped: false
+      });
+    }
+
+    const canvas = document.getElementById('a-warranty-monthly');
+    charts['a-warranty-monthly'] = new Chart(canvas, {
+      type: 'bar',
+      data: { labels: wmKeys, datasets },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: true, labels: { font:{size:11}, boxWidth:12, filter: (item) => item.text !== '' } },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) {
+                const meta = _warrantyChartMeta[ctx.datasetIndex]?.[ctx.dataIndex];
+                if (!meta) return '';
+                return meta.customer + ': $' + meta.cost.toLocaleString() + (meta.issue ? ' — ' + meta.issue.slice(0, 40) : '');
+              }
+            }
+          }
+        },
+        scales: {
+          y: { beginAtZero:true, stacked:true, grid:{color:'#eee'}, title:{display:true,text:'Cost ($)',font:{size:11}}, ticks:{callback:v=>v===0.5?'':('$'+v.toLocaleString())} },
+          x: { stacked:true, grid:{display:false}, ticks:{font:{size:10}} }
+        },
+        onClick: function(evt, elements) {
+          if (elements.length > 0) {
+            const el = elements[0];
+            const meta = _warrantyChartMeta[el.datasetIndex]?.[el.index];
+            if (meta && meta.key) {
+              showWarrantyDetail(meta.key);
+            }
+          }
+        }
+      }
+    });
+    // Store meta globally for access
+    canvas._warrantyChartMeta = _warrantyChartMeta;
+  }
+
+  // Multi-claim installations table
+  const multiTbody = document.getElementById('a-multi-tbody');
+  if (multiTbody) {
+    if (multiClaimInstalls.length === 0) {
+      multiTbody.innerHTML = '<tr><td colspan="8" style="padding:30px;text-align:center;color:var(--text-light)">No installations with multiple warranty claims</td></tr>';
+    } else {
+      const sorted = multiClaimInstalls.sort((a,b) => b.warrantyCount - a.warrantyCount);
+      multiTbody.innerHTML = sorted.map(i => {
+        const rvCount = i.warranty.filter(w => { const rv=(w.returnVisit||'').toLowerCase(); return rv==='yes'||rv==='true'; }).length;
+        const statuses = {};
+        i.warranty.forEach(w => { const s = w.status||'Open'; statuses[s] = (statuses[s]||0)+1; });
+        const statusBadges = Object.entries(statuses).map(([s,c]) => {
+          const cls = s.toLowerCase()==='closed'?'closed':s.toLowerCase()==='open'?'open':'inprog';
+          return '<span class="badge '+cls+'" style="font-size:10px">'+c+' '+esc(s)+'</span>';
+        }).join(' ');
+        const wKey = esc(i.customer + '|' + i.year + '|' + i.month).replace(/'/g,"\\'");
+        return `<tr style="background:#fef9e7;cursor:pointer" onclick="showWarrantyDetail('${wKey}')">
+          <td><b>${esc(i.customer)}</b></td>
+          <td>${esc(i.month)} ${i.year}</td>
+          <td class="td-trunc" title="${esc(i.models)}">${esc(i.models)||'—'}</td>
+          <td class="td-trunc" title="${esc(i.techs)}">${esc(i.techs)||'—'}</td>
+          <td style="text-align:center"><span style="background:#e74c3c;color:#fff;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:700">${i.warrantyCount}</span></td>
+          <td style="text-align:center">${rvCount > 0 ? '<span style="color:#e74c3c;font-weight:700">'+rvCount+'</span>' : '<span style="color:var(--text-light)">0</span>'}</td>
+          <td>${i.warrantyCost > 0 ? '<b>$'+i.warrantyCost.toLocaleString()+'</b>' : '—'}</td>
+          <td>${statusBadges}</td>
+        </tr>`;
+      }).join('');
+    }
+  }
 
 }
 
@@ -2390,7 +3352,10 @@ function saveRecord() {
     statusPA: document.getElementById('ar-spa').value.toLowerCase(),
     preventativeAction: document.getElementById('ar-pa').value.trim(),
     paOwner: document.getElementById('ar-pao').value.trim(),
-    paTimeline: ''
+    paTimeline: '',
+    recordType: 'Installation', warrantyDate: '', warrantyIssue: '',
+    warrantyProblemCode: '', warrantyStatus: '', warrantyResolution: '',
+    warrantyTech: '', warrantyReturnVisit: '', warrantyCost: ''
   });
 
   ['ar-year','ar-month','ar-cust','ar-model','ar-size','ar-techs','ar-issue','ar-root','ar-ia','ar-pa','ar-pao'].forEach(id=>{
@@ -2400,14 +3365,139 @@ function saveRecord() {
   });
   closeAR();
   applyFilters();
-  alert('Record added! Use ⬇ Export CSV to save your changes and re-import to Google Sheets.');
+  syncToSheets();
+  alert('Record added!' + (_gsAccessToken ? ' Auto-saving to Google Sheets…' : ' Use ⬇ Export CSV to save your changes.'));
+}
+
+/* ============================================================
+   ADD WARRANTY ISSUE
+   ============================================================ */
+function openAW() {
+  // Populate installation dropdown from deduplicated installs
+  const installs = getInstallations(FD);
+  const sel = document.getElementById('aw-install');
+  while (sel.options.length > 1) sel.remove(1);
+  // Sort by year desc, then month desc
+  installs.sort((a,b) => b.year - a.year || MONTHS_ORDER.indexOf(b.month) - MONTHS_ORDER.indexOf(a.month));
+  installs.forEach((inst, idx) => {
+    const label = `${inst.customer} — ${inst.month} ${inst.year} (${inst.models || 'N/A'})`;
+    const opt = new Option(label, idx);
+    sel.add(opt);
+  });
+  // Store installs for reference
+  sel._installs = installs;
+
+  // Populate problem code dropdown
+  const awpc = document.getElementById('aw-pc');
+  while (awpc.options.length > 1) awpc.remove(1);
+  const pcs = [...new Set(D.map(r=>r.problemCode).filter(Boolean))].sort();
+  pcs.forEach(p => awpc.add(new Option(p, p)));
+
+  document.getElementById('aw-install-info').style.display = 'none';
+  document.getElementById('aw-panel').classList.add('open');
+}
+
+function closeAW() { document.getElementById('aw-panel').classList.remove('open'); }
+
+function awInstallChanged() {
+  const sel = document.getElementById('aw-install');
+  const info = document.getElementById('aw-install-info');
+  const idx = parseInt(sel.value);
+  if (isNaN(idx) || !sel._installs) { info.style.display = 'none'; return; }
+
+  const inst = sel._installs[idx];
+  // Calculate warranty expiry (1 year from install)
+  const monthIdx = MONTHS_ORDER.indexOf(inst.month);
+  const expiryYear = inst.year + 1;
+  const expiryMonth = monthIdx >= 0 ? MONTHS_ORDER[monthIdx] : '?';
+  const isExpired = new Date() > new Date(expiryYear, monthIdx >= 0 ? monthIdx + 1 : 0, 1);
+
+  // Count existing warranty records
+  const wCount = D.filter(r =>
+    r.recordType === 'Warranty' &&
+    r.customer === inst.customer &&
+    r.year === inst.year &&
+    r.month === inst.month
+  ).length;
+
+  info.style.display = 'block';
+  info.innerHTML = `<b>${esc(inst.customer)}</b> — ${inst.month} ${inst.year}<br>` +
+    `<b>Equipment:</b> ${esc(inst.models) || 'N/A'}<br>` +
+    `<b>Original Tech(s):</b> ${esc(inst.techs) || 'N/A'}<br>` +
+    `<b>Warranty expires:</b> ${expiryMonth} ${expiryYear} ` +
+    (isExpired ? '<span style="color:#c0392b;font-weight:600">(EXPIRED)</span>' : '<span style="color:#27ae60;font-weight:600">(Active)</span>') +
+    (wCount > 0 ? `<br><b>Existing warranty issues:</b> <span style="color:#e67e22;font-weight:600">${wCount}</span>` : '');
+}
+
+function saveWarranty() {
+  const sel = document.getElementById('aw-install');
+  const idx = parseInt(sel.value);
+  const wDate = document.getElementById('aw-date').value;
+  const wIssue = document.getElementById('aw-issue').value.trim();
+
+  if (isNaN(idx) || !sel._installs) { alert('Please select an installation.'); return; }
+  if (!wDate) { alert('Please enter a return date.'); return; }
+  if (!wIssue) { alert('Please describe the warranty issue.'); return; }
+
+  const inst = sel._installs[idx];
+
+  // Create a warranty row linked to the original installation
+  D.push({
+    year: inst.year,
+    month: inst.month,
+    customer: inst.customer,
+    model: '',
+    sizeOptions: inst.models || '',
+    techs: inst.techs || '',
+    issue: '',
+    rootCause: '',
+    problemCode: '',
+    statusIA: 'closed',
+    immediateAction: '',
+    returnVisit: '',
+    statusPA: '',
+    preventativeAction: '',
+    paOwner: '',
+    paTimeline: '',
+    recordType: 'Warranty',
+    warrantyDate: wDate,
+    warrantyIssue: wIssue,
+    warrantyProblemCode: document.getElementById('aw-pc').value,
+    warrantyStatus: document.getElementById('aw-status').value.toLowerCase(),
+    warrantyResolution: document.getElementById('aw-resolution').value.trim(),
+    warrantyTech: document.getElementById('aw-tech').value.trim(),
+    warrantyReturnVisit: document.getElementById('aw-rv').value,
+    warrantyCost: document.getElementById('aw-cost').value.trim()
+  });
+
+  // Capture the install key before resetting
+  const reopenKey = inst.customer + '|' + inst.year + '|' + inst.month;
+
+  // Reset form
+  ['aw-date','aw-issue','aw-resolution','aw-tech','aw-cost'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  ['aw-pc','aw-status','aw-rv'].forEach(id => {
+    const el = document.getElementById(id);
+    el.value = el.options[0].value;
+  });
+  sel.value = '';
+  document.getElementById('aw-install-info').style.display = 'none';
+
+  closeAW();
+  applyFilters();
+  syncToSheets();
+  alert('Warranty issue added!' + (_gsAccessToken ? ' Auto-saving to Google Sheets…' : ' Use ⬇ Export CSV to save your changes.'));
+
+  // Reopen the installation detail card to show the new claim
+  showInstallDetail(reopenKey);
 }
 
 /* ============================================================
    EXPORT CSV
    ============================================================ */
 function exportCSV() {
-  const headers = ['Year','Month','Customer','Model','Size/Options','Tech(s)','Issue','Root Cause','Problem Code','Status-IA','Immediate Action','Return Visit','Status-PA','Preventative Action','PA Owner','PA Timeline'];
+  const headers = ['Year','Month','Customer','Model','Size/Options','Tech(s)','Issue','Root Cause','Problem Code','Status-IA','Immediate Action','Return Visit','Status-PA','Preventative Action','PA Owner','PA Timeline','Record Type','Return Date','Warranty Issue','Warranty Problem Code','Warranty Status','Warranty Resolution','Warranty Tech','Warranty Return Visit','Warranty Cost'];
   const escField = v => {
     v = String(v||'');
     if (v.includes(',') || v.includes('"') || v.includes('\n')) return '"'+v.replace(/"/g,'""')+'"';
@@ -2415,7 +3505,7 @@ function exportCSV() {
   };
   const rows = [headers.join(',')];
   FD.forEach(r => {
-    rows.push([r.year,r.month,r.customer,r.model,r.sizeOptions,r.techs,r.issue,r.rootCause,r.problemCode,r.statusIA,r.immediateAction,r.returnVisit,r.statusPA,r.preventativeAction,r.paOwner,r.paTimeline].map(escField).join(','));
+    rows.push([r.year,r.month,r.customer,r.model,r.sizeOptions,r.techs,r.issue,r.rootCause,r.problemCode,r.statusIA,r.immediateAction,r.returnVisit,r.statusPA,r.preventativeAction,r.paOwner,r.paTimeline,r.recordType||'Installation',r.warrantyDate||'',r.warrantyIssue||'',r.warrantyProblemCode||'',r.warrantyStatus||'',r.warrantyResolution||'',r.warrantyTech||'',r.warrantyReturnVisit||'',r.warrantyCost||''].map(escField).join(','));
   });
   const blob = new Blob([rows.join('\n')], {type:'text/csv;charset=utf-8'});
   const a = document.createElement('a');
@@ -2431,7 +3521,7 @@ const PAGE_TITLES = {
   overview: ['Overview', 'Summary of all installation records'],
   issues: ['All Issues', 'Full searchable installation history'],
   installs: ['All Installations', 'Deduplicated view — same customer + month + year = one installation'],
-  techs: ['Tech Performance', 'Installation success rate by technician'],
+  warranty: ['Warranty Issues', 'All warranty claims linked to installations'],
   open: ['Open Issues', 'Active immediate & preventative actions'],
   analytics: ['Analytics', 'Trends and year-over-year analysis']
 };
@@ -2446,7 +3536,7 @@ function nav(page) {
   document.getElementById('page-sub').textContent = sub;
   if (page==='analytics') renderAnalytics();
   if (page==='installs') renderInstallsTable();
-  if (page==='techs') renderTechPerformance();
+  if (page==='warranty') renderWarrantyPage();
 }
 
 /* ============================================================
@@ -2508,6 +3598,180 @@ window.addEventListener('load', async () => {
     setSyncStatus('error','No data source configured — use the setup panel to connect.');
   }
 });
+
+/* ============================================================
+   GOOGLE SHEETS WRITE-BACK (OAuth + Sheets API v4)
+   ============================================================ */
+let _gsTokenClient = null;
+let _gsAccessToken = null;
+
+function updateWBIndicator(state, label) {
+  const el = document.getElementById('wb-indicator');
+  if (!el) return;
+  el.className = 'wb-status ' + state;
+  el.textContent = '● ' + label;
+  el.style.display = 'inline-flex';
+}
+
+function gsSignIn() {
+  const clientId = (document.getElementById('gs-client-id')?.value || '').trim();
+  if (!clientId) {
+    document.getElementById('gs-auth-status').innerHTML = '<span style="color:#e74c3c">Please enter your Client ID first.</span>';
+    return;
+  }
+
+  // Persist client ID
+  CFG.clientId = clientId;
+  saveCFG();
+
+  document.getElementById('gs-auth-status').innerHTML = '<span style="color:#e67e22">Initializing sign-in…</span>';
+
+  try {
+    _gsTokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: 'https://www.googleapis.com/auth/spreadsheets',
+      callback: gsHandleToken,
+      error_callback: function(err) {
+        document.getElementById('gs-auth-status').innerHTML = '<span style="color:#e74c3c">Sign-in error: ' + (err.message || err.type || 'Unknown') + '</span>';
+        updateWBIndicator('err', 'Auth Error');
+      }
+    });
+    _gsTokenClient.requestAccessToken();
+  } catch(e) {
+    document.getElementById('gs-auth-status').innerHTML = '<span style="color:#e74c3c">Failed to init: ' + e.message + '. Make sure pop-ups are allowed.</span>';
+  }
+}
+
+function gsHandleToken(tokenResponse) {
+  if (tokenResponse.error) {
+    document.getElementById('gs-auth-status').innerHTML = '<span style="color:#e74c3c">Auth failed: ' + tokenResponse.error + '</span>';
+    updateWBIndicator('err', 'Auth Failed');
+    return;
+  }
+  _gsAccessToken = tokenResponse.access_token;
+  CFG.wbEnabled = true;
+  saveCFG();
+  document.getElementById('gs-auth-status').innerHTML = '<span style="color:#27ae60">✅ Signed in — write-back enabled! Edits will auto-save to your Google Sheet.</span>';
+  updateWBIndicator('ok', 'Connected');
+}
+
+function buildSheetRows() {
+  const headers = ['Year','Month','Customer','Model','Size/Options','Tech(s)','Issue','Root Cause','Problem Code','Status-IA','Immediate Action','Return Visit','Status-PA','Preventative Action','PA Owner','PA Timeline','Record Type','Return Date','Warranty Issue','Warranty Problem Code','Warranty Status','Warranty Resolution','Warranty Tech','Warranty Return Visit','Warranty Cost'];
+  const rows = [headers];
+  D.forEach(r => {
+    rows.push([
+      r.year || '', r.month || '', r.customer || '', r.model || '', r.sizeOptions || '',
+      r.techs || '', r.issue || '', r.rootCause || '', r.problemCode || '',
+      r.statusIA || '', r.immediateAction || '', r.returnVisit || '',
+      r.statusPA || '', r.preventativeAction || '', r.paOwner || '', r.paTimeline || '',
+      r.recordType || 'Installation', r.warrantyDate || '', r.warrantyIssue || '',
+      r.warrantyProblemCode || '', r.warrantyStatus || '', r.warrantyResolution || '',
+      r.warrantyTech || '', r.warrantyReturnVisit || '', r.warrantyCost || ''
+    ]);
+  });
+  return rows;
+}
+
+async function syncToSheets() {
+  // Silently skip if write-back is not fully configured
+  if (!_gsAccessToken) return;
+  if (!CFG.wbEnabled) return;
+  if (CFG.source !== 'sheets' || !CFG.url) return;
+
+  const sheetId = extractSheetId(CFG.url);
+  if (!sheetId) { updateWBIndicator('err', 'No Sheet ID'); return; }
+
+  updateWBIndicator('syncing', 'Saving…');
+
+  try {
+    // Step 1: Get the actual sheet name (not always "Sheet1")
+    let sheetName = CFG._sheetName || null;
+    if (!sheetName) {
+      const metaResp = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?fields=sheets.properties.title`,
+        { headers: { 'Authorization': 'Bearer ' + _gsAccessToken } }
+      );
+      if (metaResp.status === 401) { _handleTokenExpired(); return; }
+      if (!metaResp.ok) {
+        const e = await metaResp.json().catch(() => ({}));
+        console.error('Sheets metadata error:', e.error?.message || metaResp.statusText);
+        updateWBIndicator('err', 'Cannot read sheet');
+        return;
+      }
+      const meta = await metaResp.json();
+      sheetName = meta.sheets?.[0]?.properties?.title || 'Sheet1';
+      CFG._sheetName = sheetName;
+      saveCFG();
+    }
+
+    const rows = buildSheetRows();
+    const safeSheetName = "'" + sheetName.replace(/'/g, "''") + "'";
+    const range = safeSheetName + '!A1:Y' + rows.length;
+
+    // Step 2: Clear the sheet to avoid stale rows
+    const clearResp = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${safeSheetName}:clear`,
+      {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + _gsAccessToken, 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      }
+    );
+    if (clearResp.status === 401) { _handleTokenExpired(); return; }
+    if (!clearResp.ok) {
+      const e = await clearResp.json().catch(() => ({}));
+      console.error('Sheets clear error:', e.error?.message || clearResp.statusText);
+      updateWBIndicator('err', 'Clear failed');
+      return;
+    }
+
+    // Step 3: Write all data
+    const writeResp = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}?valueInputOption=RAW`,
+      {
+        method: 'PUT',
+        headers: { 'Authorization': 'Bearer ' + _gsAccessToken, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ range: range, majorDimension: 'ROWS', values: rows })
+      }
+    );
+    if (writeResp.status === 401) { _handleTokenExpired(); return; }
+    if (!writeResp.ok) {
+      const e = await writeResp.json().catch(() => ({}));
+      console.error('Sheets write error:', e.error?.message || writeResp.statusText);
+      updateWBIndicator('err', 'Write failed');
+      return;
+    }
+
+    CFG.lastWBSync = new Date().toISOString();
+    saveCFG();
+    updateWBIndicator('ok', 'Saved');
+  } catch(e) {
+    console.error('Sheets write-back error:', e);
+    updateWBIndicator('err', 'Network Error');
+  }
+}
+
+function _handleTokenExpired() {
+  _gsAccessToken = null;
+  CFG.wbEnabled = false;
+  saveCFG();
+  updateWBIndicator('err', 'Token Expired');
+  const el = document.getElementById('gs-auth-status');
+  if (el) el.innerHTML = '<span style="color:#e74c3c">Session expired — please Sign In again.</span>';
+}
+
+// Restore write-back state on page load
+(function initWBState() {
+  if (CFG.clientId) {
+    const el = document.getElementById('gs-client-id');
+    if (el) el.value = CFG.clientId;
+  }
+  // Token doesn't persist across page loads, so if write-back was enabled
+  // the user will need to sign in again — show a gentle reminder, not an error
+  if (CFG.wbEnabled && !_gsAccessToken) {
+    updateWBIndicator('off', 'Sign In to sync');
+  }
+})();
 </script>
 </body>
 </html>
